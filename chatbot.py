@@ -1,22 +1,70 @@
 import chainlit as cl
+from agents import (
+    Agent,
+    Runner,
+    AsyncOpenAI,
+    OpenAIChatCompletionsModel,
+    set_tracing_disabled,
+)
 from my_secrets import Secrets
-from agents import Agent, Runner, AsyncOpenAI, set_default_openai_api, set_tracing_disabled, OpenAIChatCompletionsModel
-@cl.on_message
-async def main(msg: cl.Message):
-    secrets= Secrets()
+from typing import cast
+import json
+
+secrets = Secrets()
+
+@cl.on_chat_start
+async def start():
+    msg = cl.Message(content="Welcome to the chatbot!, I am here to help you.")
+    await msg.send()
+
     external_client = AsyncOpenAI(
-                api_key=secrets.get_api_key(),
-                base_url=secrets.get_api_base_url(),)
+        base_url=secrets.get_api_base_url(),
+        api_key=secrets.get_api_key(),
+    )
     set_tracing_disabled(True)
-    set_default_openai_api(external_client)
+
     agent = Agent(
-        name="Assistant",
-        instructions="Answer the question as best as you can.",
+        name="Chatbot",
+        instructions="You are a helpful assistant. Which can precisely answer questions in a single sentence.",
         model=OpenAIChatCompletionsModel(
+            openai_client=external_client,
             model=secrets.get_api_model(),
-            openai_client = external_client,
         ),
     )
-    result = Runner.run_sync(starting_agent=agent, input=msg.content)
-    message = cl.Message(content=result.final_output)
-    await message.send()
+
+    cl.user_session.set("agent", agent)
+    cl.user_session.set("chat_history", [])
+
+@cl.on_message
+async def main(message: cl.Message):
+    msg = cl.Message(content="Thinking...")
+    await msg.send()
+
+    agent = cast(Agent, cl.user_session.get("agent"))
+    chat_history: list = cl.user_session.get("chat_history") or []
+    chat_history.append(
+        {
+            "role": "user",
+            "content": message.content,
+        }
+    )
+
+    try:
+        result = Runner.run_sync(
+            starting_agent=agent,
+            input=chat_history,
+        )
+        msg.content = result.final_output
+        cl.user_session.set("chat_history", result.to_input_list())
+        await msg.update()
+    except Exception as e:
+        msg.content = (
+            "An error occurred while processing your request. Please try again."
+        )
+        await msg.update()
+
+@cl.on_chat_end
+def end():
+    chat_history: list = cl.user_session.get("chat_history") or []
+    with open("chat_history.json", "w") as f:
+        json.dump(chat_history, f, indent=4)

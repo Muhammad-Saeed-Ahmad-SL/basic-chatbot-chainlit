@@ -1,0 +1,36 @@
+[
+    {
+        "role": "user",
+        "content": "how to open vs code in github"
+    },
+    {
+        "id": "__fake_id__",
+        "content": [
+            {
+                "annotations": [],
+                "text": "You can open VS Code in GitHub by using the \".dev\" shortcut in your browser's address bar when viewing a repository.\n",
+                "type": "output_text"
+            }
+        ],
+        "role": "assistant",
+        "status": "completed",
+        "type": "message"
+    },
+    {
+        "role": "user",
+        "content": "how i can"
+    },
+    {
+        "id": "__fake_id__",
+        "content": [
+            {
+                "annotations": [],
+                "text": "To open VS Code in GitHub, simply press the \".\" (period) key while viewing a repository on GitHub, or replace \"github.com\" with \"github.dev\" in the URL.\n",
+                "type": "output_text"
+            }
+        ],
+        "role": "assistant",
+        "status": "completed",
+        "type": "message"
+    }
+]
